@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Благодать — графік</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #1f3d63; --navy-2: #2b5583; --navy-3: #163050;
+    --gold: #e2b54d; --gold-bg: #fbf1d6; --gold-ink: #7a5a12;
+    --bg: #eef2f7; --card: #ffffff; --ink: #1b2a3d; --muted: #4a5a6e; --line: #c9d4e2;
+    --ok: #2e7d32; --bad: #c62828;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: Inter, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-text-size-adjust: 100%; }
+  button { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  a { color: var(--navy); }
+  .wrap { max-width: 560px; margin: 0 auto; min-height: 100vh; }
+
+  /* Шапка */
+  .top { position: sticky; top: 0; z-index: 5; background: var(--navy); padding: 12px 16px 14px;
+    display: flex; flex-direction: column; gap: 12px; }
+  .month { display: flex; align-items: center; justify-content: space-between; }
+  .month h1 { margin: 0; font-size: 22px; font-weight: 800; color: #fff; text-align: center; flex: 1; }
+  .nav { width: 44px; height: 44px; border-radius: 12px; border: 0; background: var(--navy-2);
+    display: flex; align-items: center; justify-content: center; }
+  .nav:disabled { opacity: .35; cursor: default; }
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--navy-3);
+    border-radius: 14px; padding: 4px; }
+  .tab { border: 0; border-radius: 11px; min-height: 44px; font-size: 14px; font-weight: 600;
+    background: transparent; color: #fff; }
+  .tab.on { background: var(--gold); color: var(--ink); font-weight: 700; }
+
+  /* Вміст */
+  .body { padding: 14px 14px 28px; display: flex; flex-direction: column; gap: 12px; }
+  .mine-card { background: var(--gold-bg); border: 2px solid var(--gold); border-radius: 16px;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .mine-card .cap { font-size: 12px; font-weight: 700; color: var(--gold-ink); letter-spacing: .5px; text-transform: uppercase; }
+  .mine-item { font-size: 15px; font-weight: 600; line-height: 1.35; }
+  .mine-item .sub { display: block; font-size: 13px; font-weight: 500; color: var(--muted); }
+  .mine-item.past { color: var(--muted); font-weight: 500; }
+  .mine-none { font-size: 14px; color: var(--gold-ink); }
+
+  .chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex-shrink: 0; min-height: 40px; padding: 0 14px; border-radius: 20px; font-size: 14px; font-weight: 600;
+    border: 2px solid var(--line); background: #fff; color: var(--ink); }
+  .chip.on { border-color: var(--navy); background: var(--navy); color: #fff; }
+
+  .card { background: var(--card); border-radius: 16px; padding: 12px 12px 8px; display: flex; flex-direction: column; gap: 4px; }
+  .card.my { box-shadow: 0 0 0 2px var(--gold); }
+  .card.past { opacity: .62; }
+  .card-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0 2px 2px; }
+  .card-h b { font-size: 16px; font-weight: 700; }
+  .card-h span { font-size: 14px; font-weight: 600; color: var(--muted); }
+  .badge { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 10px; background: var(--navy);
+    color: #fff; font-size: 11px; font-weight: 700; vertical-align: 2px; }
+  .done { font-size: 13px; color: var(--muted); padding: 0 8px 4px; }
+
+  .row { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 4px 8px; border-radius: 10px; }
+  .row.me { background: var(--gold-bg); outline: 2px solid var(--gold); }
+  .num { width: 24px; height: 24px; border-radius: 12px; background: var(--navy); color: #fff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .name { flex: 1; font-size: 15px; font-weight: 500; min-width: 0; }
+  .name.empty { color: var(--muted); }
+  .village { width: 84px; flex-shrink: 0; font-size: 14px; font-weight: 700; color: var(--navy); }
+  .fb { font-size: 15px; flex-shrink: 0; }
+  .swap { background: var(--navy); color: #fff; border: 0; font-size: 13px; font-weight: 700; padding: 0 10px;
+    height: 34px; border-radius: 10px; flex-shrink: 0; }
+
+  .note { font-size: 13px; color: var(--muted); padding: 0 4px; line-height: 1.4; }
+  .empty-box { background: #fff; border-radius: 16px; padding: 18px 16px; font-size: 15px; color: var(--muted); line-height: 1.45; }
+  .foot { font-size: 12px; color: var(--muted); text-align: center; padding-top: 6px; }
+
+  /* Екрани стану */
+  .state { min-height: var(--tg-viewport-stable-height, 100vh); display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; padding: 32px 24px; text-align: center; }
+  .state h2 { margin: 0; font-size: 20px; font-weight: 800; }
+  .state p { margin: 0; font-size: 15px; color: var(--muted); line-height: 1.5; max-width: 360px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 50px; padding: 0 22px;
+    border-radius: 14px; border: 0; background: var(--gold); color: var(--ink); font-size: 16px; font-weight: 800; text-decoration: none; }
+  .spin { width: 34px; height: 34px; border-radius: 50%; border: 4px solid var(--line); border-top-color: var(--navy);
+    animation: sp 0.9s linear infinite; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+
+  /* Нижня шторка «Помінятись» */
+  .shade { position: fixed; inset: 0; background: rgba(12, 22, 38, .55); z-index: 20; display: none; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 21; max-width: 560px; margin: 0 auto; background: #fff;
+    border-radius: 24px 24px 0 0; padding: 10px 18px calc(24px + env(safe-area-inset-bottom)); display: none;
+    flex-direction: column; gap: 12px; }
+  .open .shade { display: block; } .open .sheet { display: flex; }
+  .grip { align-self: center; width: 40px; height: 5px; border-radius: 3px; background: var(--line); }
+  .sheet h3 { margin: 0; font-size: 20px; font-weight: 800; }
+  .sheet .give { font-size: 15px; color: var(--muted); }
+  .steps { margin: 0; padding-left: 20px; font-size: 15px; line-height: 1.5; }
+  .cancel { align-self: center; background: none; border: 0; font-size: 15px; font-weight: 600; color: var(--navy); padding: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="state"><div class="spin"></div><p>Завантажую графік…</p></div>
+</div>
+
+<div id="swapUi">
+  <div class="shade" onclick="closeSwap()"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="swapTitle">
+    <div class="grip" aria-hidden="true"></div>
+    <h3 id="swapTitle">Помінятись</h3>
+    <div class="give" id="swapGive"></div>
+    <ol class="steps">
+      <li>Поверніться в чат з ботом.</li>
+      <li>Натисніть кнопку <b>📅 Мої дати</b> внизу.</li>
+      <li>Виберіть <b id="swapBtnName">🔄 Помінятись</b>.</li>
+    </ol>
+    <div class="note">Бот покаже, з ким можна помінятися, не ламаючи правил графіка.</div>
+    <a class="btn" id="swapChat" href="https://t.me/blagodat_grafik_bot" target="_top" onclick="return backToChat(event)">Відкрити чат з ботом</a>
+    <button class="cancel" onclick="closeSwap()">Закрити</button>
+  </div>
+</div>
+
+<script>
+/* Для попереднього перегляду поза Telegram сюди підставляються дані. У Telegram — null. */
+var MA_DEMO = null;
+var DIAG = null; /* що прийшло від Telegram (без самого підпису) — для журналу помилок */
+
+var DOW = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+var MON_GEN = ['січ.', 'лют.', 'бер.', 'квіт.', 'трав.', 'черв.', 'лип.', 'серп.', 'вер.', 'жовт.', 'лист.', 'груд.'];
+var ORD = ['першим', 'другим', 'третім', 'четвертим'];
+var S = { data: null, m: 0, tab: 'mz', week: 0 };
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function key(s) { return String(s || '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/[ʼ’'\x60]/g, "'"); }
+function dm(iso) { return iso.slice(8, 10) + '.' + iso.slice(5, 7); }
+function dateOf(iso) { return new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)); }
+function dow(iso) { return DOW[dateOf(iso).getDay()]; }
+function telLink(p) {
+  if (!p) return '';
+  var t = p.replace(/[^\d+]/g, '');
+  if (/^0\d{9}$/.test(t)) t = '+38' + t;
+  return '<a href="tel:' + esc(t) + '">' + esc(p) + '</a>';
+}
+function mondayIso(iso) {
+  var d = dateOf(iso), shift = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - shift);
+  return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+}
+
+/* Адреса Apps Script, що віддає дані з таблиці (той самий веб-застосунок, POST). */
+var API_URL = 'https://script.google.com/macros/s/AKfycbxnUoJ3qTiL1imXOr27nUTY8DEFWyiuOP-sBkphwRT2Gvm4dBDZamYNe-oL59Uc2LyZ/exec';
+var TG = (window.Telegram && window.Telegram.WebApp) || null;
+
+/* ───── Зв'язок із Telegram ───── */
+
+function tgSetup() {
+  if (!TG) return;
+  try { TG.ready(); } catch (e) {}
+  try { TG.expand(); } catch (e) {}
+  try { TG.setHeaderColor('#1f3d63'); } catch (e) {}
+  try { TG.setBackgroundColor('#eef2f7'); } catch (e) {}
+  try { TG.setBottomBarColor && TG.setBottomBarColor('#eef2f7'); } catch (e) {}
+  try { TG.disableVerticalSwipes && TG.disableVerticalSwipes(); } catch (e) {}
+}
+
+/** «Відкрити чат з ботом»: у Telegram просто закриваємо графік (чат уже під ним). */
+function backToChat(ev) {
+  if (TG && TG.initData) { if (ev) ev.preventDefault(); try { TG.close(); } catch (e) {} return false; }
+  return true;
+}
+
+/* ───── Старт ───── */
+
+function start() {
+  tgSetup();
+  if (MA_DEMO) return onData(MA_DEMO);
+  var initData = TG && TG.initData;
+  if (!initData) return showState('no_telegram');
+  DIAG = { platform: TG.platform, version: TG.version };
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ initData: initData, diag: DIAG })
+  })
+    .then(function (r) { return r.json(); })
+    .then(onData)
+    .catch(function () { showState('error'); });
+}
+
+function onData(res) {
+  if (!res || !res.ok) return showState(res && res.reason, res && res.bot);
+  S.data = res;
+  var ms = res.months, cur = res.today.slice(0, 7), idx = -1;
+  for (var i = 0; i < ms.length; i++) if (ms[i].key === cur) idx = i;
+  if (idx < 0) for (var j = 0; j < ms.length; j++) if (ms[j].key > cur) { idx = j; break; }
+  if (idx < 0) idx = ms.length - 1;
+  pickMonth(idx, true);
+}
+
+function showState(reason, bot) {
+  bot = bot || 'https://t.me/blagodat_grafik_bot';
+  var t = {
+    no_telegram: ['Відкрийте графік у Telegram', 'Графік відкривається з чату з ботом @blagodat_grafik_bot — кнопкою «Графік» біля поля для повідомлення.', true],
+    not_connected: ['Спершу підключіться до бота', 'Відкрийте чат з ботом, натисніть «Старт» і поділіться номером телефону. Після цього графік відкриється.', true],
+    bad_auth: ['Не вдалося перевірити вхід', 'Закрийте графік і відкрийте його ще раз із чату з ботом.', false],
+    no_token: ['Графік ще не налаштовано', 'Адміністратору: у таблиці вкажіть токен бота (меню «🤖 Бот» → «1. Вказати токен»).', false],
+    error: ['Щось пішло не так', 'Не вдалося завантажити графік. Спробуйте відкрити ще раз за хвилину.', false]
+  }[reason] || ['Щось пішло не так', 'Спробуйте відкрити графік ще раз.', false];
+  document.getElementById('app').innerHTML =
+    '<div class="state"><h2>' + esc(t[0]) + '</h2><p>' + esc(t[1]) + '</p>' +
+    (t[2] ? '<a class="btn" href="' + esc(bot) + '" target="_top" onclick="return backToChat(event)">Відкрити чат з ботом</a>' : '') + '</div>';
+}
+
+/* ───── Перемикачі ───── */
+
+function pickMonth(i, first) {
+  var ms = S.data.months;
+  if (i < 0 || i >= ms.length) return;
+  S.m = i;
+  var mo = ms[i];
+  if (first || !(S.tab === 'mz' ? mo.mz.length : mo.trips.length)) S.tab = mo.mz.length ? 'mz' : 'trips';
+  if (first && mo.mz.length && myTripSoon(mo) && !myMzSoon(mo)) S.tab = 'trips';
+  S.week = defaultWeek(mo);
+  render();
+  window.scrollTo(0, 0);
+}
+function pickTab(t) { S.tab = t; render(); }
+function pickWeek(w) { S.week = w; render(); }
+
+function weeksOf(mo) {
+  var out = [], idx = {};
+  mo.mz.forEach(function (d) {
+    var k = mondayIso(d.date);
+    if (!(k in idx)) { idx[k] = out.length; out.push({ days: [] }); }
+    out[idx[k]].days.push(d);
+  });
+  out.forEach(function (w) {
+    var a = w.days[0].date, b = w.days[w.days.length - 1].date, mon = MON_GEN[+a.slice(5, 7) - 1];
+    w.label = (a === b ? +a.slice(8) : +a.slice(8) + '–' + +b.slice(8)) + ' ' + mon;
+  });
+  return out;
+}
+function defaultWeek(mo) {
+  var ws = weeksOf(mo), today = S.data.today;
+  for (var i = 0; i < ws.length; i++) if (ws[i].days[ws[i].days.length - 1].date >= today) return i;
+  return 0;
+}
+function isMe(n) { return !!n && key(n) === key(S.data.me); }
+function myMzSoon(mo) { return mo.mz.some(function (d) { return d.date >= S.data.today && d.people.some(isMe); }); }
+function myTripSoon(mo) { return mo.trips.some(function (s) { return s.date >= S.data.today && s.rows.some(function (r) { return r.mine; }); }); }
+
+/* ───── Малювання ───── */
+
+function render() {
+  var d = S.data, ms = d.months, mo = ms[S.m];
+  var h = '';
+  h += '<div class="top"><div class="month">' +
+    '<button class="nav" aria-label="Попередній місяць" onclick="pickMonth(' + (S.m - 1) + ')"' + (S.m === 0 ? ' disabled' : '') + '>' +
+    '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M11 3 L5 9 L11 15" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
+    '<h1>' + esc(mo.title) + '</h1>' +
+    '<button class="nav" aria-label="Наступний місяць" onclick="pickMonth(' + (S.m + 1) + ')"' + (S.m === ms.length - 1 ? ' disabled' : '') + '>' +
+    '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M7 3 L13 9 L7 15" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
+    '</div><div class="tabs" role="tablist">' +
+    '<button role="tab" class="tab' + (S.tab === 'mz' ? ' on' : '') + '" aria-selected="' + (S.tab === 'mz') + '" onclick="pickTab(\'mz\')">Молитовні зібрання</button>' +
+    '<button role="tab" class="tab' + (S.tab === 'trips' ? ' on' : '') + '" aria-selected="' + (S.tab === 'trips') + '" onclick="pickTab(\'trips\')">Поїздки в села</button>' +
+    '</div></div>';
+
+  h += '<div class="body">' + mineCard(mo);
+  h += S.tab === 'mz' ? mzHtml(mo) : tripsHtml(mo);
+  h += '<div class="foot">Дані з таблиці «Графік проповідників»</div></div>';
+  document.getElementById('app').innerHTML = h;
+}
+
+function mineCard(mo) {
+  var d = S.data, items = [];
+  mo.mz.forEach(function (day) {
+    var i = -1;
+    day.people.forEach(function (n, k) { if (isMe(n)) i = k; });
+    if (i >= 0) items.push({ date: day.date, text: day.dow + ' ' + dm(day.date) + ', ' + day.time + ' — молитовне, ' + (ORD[i] || (i + 1) + '-м') });
+  });
+  mo.trips.forEach(function (s) {
+    s.rows.forEach(function (r) {
+      if (r.mine) items.push({ date: s.date,
+        text: 'Нд ' + dm(s.date) + ' — поїздка в с. ' + r.village,
+        sub: r.host ? 'Приймає: ' + esc(r.host) + (r.hostPhone ? ' · ' + telLink(r.hostPhone) : '') : '' });
+      if (r.iHost && r.name) items.push({ date: s.date,
+        text: 'Нд ' + dm(s.date) + ' — до вас приїде ' + r.name,
+        sub: r.phone ? telLink(r.phone) : '' });
+    });
+  });
+  items.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+  var h = '<div class="mine-card"><span class="cap">Ваші дати · ' + esc(d.me) + '</span>';
+  if (!items.length) h += '<span class="mine-none">Цього місяця у вас немає дат.</span>';
+  items.forEach(function (it) {
+    var past = it.date < d.today;
+    h += '<div class="mine-item' + (past ? ' past' : '') + '">' + (past ? '✓ ' : '') + esc(it.text) +
+      (it.sub ? '<span class="sub">' + it.sub + '</span>' : '') + '</div>';
+  });
+  return h + '</div>';
+}
+
+function canSwap(iso) { return iso > S.data.today; }
+
+function mzHtml(mo) {
+  if (!mo.mz.length) return '<div class="empty-box">Графіка молитовних зібрань за цей місяць у таблиці немає.</div>';
+  var ws = weeksOf(mo), today = S.data.today, h = '';
+  if (S.week >= ws.length) S.week = 0;
+  h += '<div class="chips">';
+  ws.forEach(function (w, i) {
+    h += '<button class="chip' + (i === S.week ? ' on' : '') + '" onclick="pickWeek(' + i + ')">' + esc(w.label) + '</button>';
+  });
+  h += '</div>';
+  ws[S.week].days.forEach(function (day) {
+    var my = day.people.some(isMe), past = day.date < today;
+    h += '<div class="card' + (my ? ' my' : '') + (past ? ' past' : '') + '">' +
+      '<div class="card-h"><b>' + esc(day.dow) + ' ' + dm(day.date) + (day.date === today ? '<span class="badge">сьогодні</span>' : '') + '</b>' +
+      '<span>' + esc(day.time) + '</span></div>';
+    if (!day.people.length) h += '<div class="row"><span class="name empty">Ще нікого не поставлено</span></div>';
+    day.people.forEach(function (n, i) {
+      var me = isMe(n);
+      h += '<div class="row' + (me ? ' me' : '') + '"><span class="num">' + (i + 1) + '</span>' +
+        '<span class="name">' + esc(n) + '</span>' +
+        (me && canSwap(day.date) ? '<button class="swap" onclick="openSwap(\'' + day.date + '\',\'mz\',' + i + ')">Помінятись</button>' : '') +
+        '</div>';
+    });
+    if (day.done) h += '<div class="done">Відбулося: ' + esc(day.done) + '</div>';
+    h += '</div>';
+  });
+  return h;
+}
+
+function tripsHtml(mo) {
+  if (!mo.trips.length) return '<div class="empty-box">Поїздок у села за цей місяць у таблиці немає.</div>';
+  var today = S.data.today, h = '', anyFb = false;
+  mo.trips.forEach(function (s) {
+    var my = s.rows.some(function (r) { return r.mine || r.iHost; }), past = s.date < today;
+    h += '<div class="card' + (my ? ' my' : '') + (past ? ' past' : '') + '">' +
+      '<div class="card-h"><b>Неділя ' + dm(s.date) + (s.date === today ? '<span class="badge">сьогодні</span>' : '') + '</b></div>';
+    s.rows.forEach(function (r, i) {
+      if (r.fb) anyFb = true;
+      var me = r.mine || r.iHost;
+      h += '<div class="row' + (me ? ' me' : '') + '"><span class="village">' + esc(r.village) + '</span>' +
+        '<span class="name' + (r.name ? '' : ' empty') + '">' + esc(r.name || '—') + '</span>' +
+        (r.fb === 'yes' ? '<span class="fb" title="Доїхав">✅</span>' : r.fb === 'no' ? '<span class="fb" title="Не доїхав">❌</span>' : '') +
+        (r.mine && canSwap(s.date) ? '<button class="swap" onclick="openSwap(\'' + s.date + '\',\'trip\',' + i + ')">Помінятись</button>' : '') +
+        '</div>';
+    });
+    h += '</div>';
+  });
+  h += '<div class="note">' + (anyFb ? '✅ — приймаючий підтвердив, що брат доїхав, ❌ — не доїхав. ' : '') +
+    'Приймаючі в селах бачать, хто до них приїде.</div>';
+  return h;
+}
+
+/* ───── Помінятись ───── */
+
+function openSwap(iso, kind, i) {
+  var mo = S.data.months[S.m], text;
+  if (kind === 'mz') {
+    var day = mo.mz.filter(function (d) { return d.date === iso; })[0];
+    text = day.dow + ' ' + dm(iso) + ' о ' + day.time + ', молитовне зібрання, ' + (ORD[i] || '');
+  } else {
+    var s = mo.trips.filter(function (t) { return t.date === iso; })[0];
+    text = 'Нд ' + dm(iso) + ', поїздка в с. ' + s.rows[i].village;
+  }
+  document.getElementById('swapGive').textContent = 'Віддаєте: ' + text;
+  document.getElementById('swapBtnName').textContent = '🔄 Помінятись: ' + (kind === 'mz' ? mo.mz.filter(function (d) { return d.date === iso; })[0].dow : 'Нд') + ' ' + dm(iso);
+  document.getElementById('swapChat').href = S.data.bot || 'https://t.me/blagodat_grafik_bot';
+  document.getElementById('swapUi').className = 'open';
+}
+function closeSwap() { document.getElementById('swapUi').className = ''; }
+
+start();
+</script>
+</body>
+</html>
