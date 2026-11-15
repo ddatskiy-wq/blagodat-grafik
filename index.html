@@ -86,6 +86,8 @@
   .spin { width: 34px; height: 34px; border-radius: 50%; border: 4px solid var(--line); border-top-color: var(--navy);
     animation: sp 0.9s linear infinite; }
   @keyframes sp { to { transform: rotate(360deg); } }
+  .spin.small { width: 22px; height: 22px; border-width: 3px; flex-shrink: 0; }
+  .empty-box.loading { display: flex; align-items: center; gap: 12px; }
 
   /* Нижня шторка «Помінятись» */
   .shade { position: fixed; inset: 0; background: rgba(12, 22, 38, .55); z-index: 20; display: none; }
@@ -130,7 +132,7 @@ var DIAG = null; /* що прийшло від Telegram (без самого п�
 var DOW = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 var MON_GEN = ['січ.', 'лют.', 'бер.', 'квіт.', 'трав.', 'черв.', 'лип.', 'серп.', 'вер.', 'жовт.', 'лист.', 'груд.'];
 var ORD = ['першим', 'другим', 'третім', 'четвертим'];
-var S = { data: null, m: 0, tab: 'mz', week: 0 };
+var S = { data: null, m: 0, tab: 'mz', week: 0, uid: '', initData: '', busy: {}, refreshing: false, failed: false };
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -156,6 +158,8 @@ function mondayIso(iso) {
 /* Адреса Apps Script, що віддає дані з таблиці (той самий веб-застосунок, POST). */
 var API_URL = 'https://script.google.com/macros/s/AKfycbxnUoJ3qTiL1imXOr27nUTY8DEFWyiuOP-sBkphwRT2Gvm4dBDZamYNe-oL59Uc2LyZ/exec';
 var TG = (window.Telegram && window.Telegram.WebApp) || null;
+/* Запасний варіант: сторінка відкрита всередині Google Apps Script (стара адреса кнопки). */
+var GAS = !!(window.google && google.script && google.script.run);
 
 /* ───── Зв'язок із Telegram ───── */
 
@@ -175,32 +179,135 @@ function backToChat(ev) {
   return true;
 }
 
+/** Підпис Telegram: зі стандартної бібліотеки або (у Google) з адреси сторінки. */
+function getInitData(cb) {
+  if (TG && TG.initData) return cb(TG.initData);
+  if (window.google && google.script && google.script.url) {
+    return google.script.url.getLocation(function (loc) { cb(readInitData(loc)); });
+  }
+  cb('');
+}
+
+/**
+ * Telegram передає підпис у фрагменті адреси: #tgWebAppData=<initData>&tgWebAppVersion=...
+ * Google може віддати фрагмент уже розкодованим, тому беремо все до наступного «&tgWebApp…=»
+ * і розкодовуємо лише тоді, коли всередині ще закодовано («hash%3D»).
+ */
+function readInitData(loc) {
+  var hash = String((loc && loc.hash) || '').replace(/^#/, '');
+  var m = hash.match(/(?:^|&)tgWebAppData=([\s\S]*?)(?=&tgWebApp[A-Za-z]+=|$)/);
+  var raw = m ? m[1] : String((loc && loc.parameter && loc.parameter.tgWebAppData) || '');
+  var enc = /hash%3D/i.test(raw);
+  DIAG = { hashLen: hash.length, rawLen: raw.length, enc: enc, plain: /(^|&)hash=/.test(raw), fromParam: !m };
+  if (!raw) return '';
+  if (!enc) return raw;
+  try { return decodeURIComponent(raw); } catch (e) { return ''; }
+}
+
+/** Chat ID з підпису — щоб збережений графік на телефоні був саме цієї людини. */
+function userIdFrom(initData) {
+  var m = String(initData).match(/(?:^|&)user=([^&]*)/);
+  if (!m) return '';
+  try { return String(JSON.parse(decodeURIComponent(m[1])).id || ''); } catch (e) { return ''; }
+}
+
+/** Запит до Apps Script. extra.month — потрібний місяць ('YYYY-MM'). */
+function api(extra, cb) {
+  var fail = function () { cb({ ok: false, reason: 'error' }); };
+  if (GAS) {
+    google.script.run.withSuccessHandler(cb).withFailureHandler(fail).MA_getData(S.initData, DIAG, extra.month || '');
+    return;
+  }
+  var body = { initData: S.initData, diag: DIAG, month: extra.month || '' };
+  fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
+    .then(function (r) { return r.json(); })
+    .then(cb)
+    .catch(fail);
+}
+
+/* ───── Збережений графік на телефоні: показуємо одразу, свіже — підтягуємо у фоні ───── */
+
+function storeKey() { return 'ma_v2_' + (S.uid || 'x'); }
+function readStore() {
+  try { return JSON.parse(window.localStorage.getItem(storeKey()) || 'null'); } catch (e) { return null; }
+}
+function writeStore() {
+  if (MA_DEMO || !S.data) return;
+  try {
+    var d = S.data;
+    window.localStorage.setItem(storeKey(), JSON.stringify({
+      me: d.me, bot: d.bot,
+      index: d.months.map(function (m) { return { key: m.key, title: m.title }; }),
+      months: d.months.filter(function (m) { return m.loaded; }).map(function (m) { return { key: m.key, title: m.title, mz: m.mz, trips: m.trips }; })
+    }));
+  } catch (e) { /* сховище недоступне — не страшно */ }
+}
+function localToday() {
+  var d = new Date();
+  return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+}
+
 /* ───── Старт ───── */
 
 function start() {
   tgSetup();
-  if (MA_DEMO) return onData(MA_DEMO);
-  var initData = TG && TG.initData;
-  if (!initData) return showState('no_telegram');
-  DIAG = { platform: TG.platform, version: TG.version };
-  fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ initData: initData, diag: DIAG })
-  })
-    .then(function (r) { return r.json(); })
-    .then(onData)
-    .catch(function () { showState('error'); });
+  if (MA_DEMO) return onData(MA_DEMO, { first: true });
+  getInitData(function (initData) {
+    if (!initData) return showState('no_telegram');
+    S.initData = initData;
+    S.uid = userIdFrom(initData);
+    if (!DIAG) DIAG = TG ? { platform: TG.platform, version: TG.version } : {};
+    var saved = readStore();
+    if (saved && saved.index && saved.index.length && saved.me) {
+      onData({ ok: true, me: saved.me, bot: saved.bot, today: localToday(), index: saved.index, months: saved.months,
+        current: localToday().slice(0, 7) }, { first: true, stale: true });
+    }
+    api({}, function (res) { onData(res, { first: !S.data }); });
+  });
 }
 
-function onData(res) {
-  if (!res || !res.ok) return showState(res && res.reason, res && res.bot);
-  S.data = res;
-  var ms = res.months, cur = res.today.slice(0, 7), idx = -1;
-  for (var i = 0; i < ms.length; i++) if (ms[i].key === cur) idx = i;
-  if (idx < 0) for (var j = 0; j < ms.length; j++) if (ms[j].key > cur) { idx = j; break; }
-  if (idx < 0) idx = ms.length - 1;
-  pickMonth(idx, true);
+/**
+ * Відповідь сервера: { me, today, bot, current, index: [{key,title}], months: [дані одного чи кількох місяців] }.
+ * Зливаємо з тим, що вже є, і перемальовуємо, не збиваючи вибраний місяць, вкладку й тиждень.
+ */
+function onData(res, opts) {
+  opts = opts || {};
+  if (!res || !res.ok) {
+    if (S.data && (!res || res.reason === 'error')) { S.refreshing = false; S.failed = true; render(); return; }
+    return showState(res && res.reason, res && res.bot);
+  }
+  var prevKey = S.data ? S.data.months[S.m].key : '';
+  var have = {};
+  if (S.data) S.data.months.forEach(function (m) { if (m.loaded) have[m.key] = m; });
+  (res.months || []).forEach(function (m) { m.loaded = true; m.stale = !!opts.stale; have[m.key] = m; });
+  var index = res.index || (res.months || []).map(function (m) { return { key: m.key, title: m.title }; });
+  var months = index.map(function (ix) {
+    return have[ix.key] || { key: ix.key, title: ix.title, mz: [], trips: [], loaded: false };
+  });
+  if (!months.length) return showState('empty');
+  S.data = { me: res.me, bot: res.bot, today: res.today || localToday(), months: months };
+  S.refreshing = !!opts.stale;
+  S.failed = false;
+  if (!opts.stale) writeStore();
+  var want = prevKey || res.current || S.data.today.slice(0, 7), idx = -1;
+  for (var i = 0; i < months.length; i++) if (months[i].key === want) idx = i;
+  if (idx < 0) for (var j = 0; j < months.length; j++) if (months[j].key > want) { idx = j; break; }
+  if (idx < 0) idx = months.length - 1;
+  if (!prevKey) return pickMonth(idx, true);
+  S.m = idx;
+  if (S.fixFor === months[idx].key && months[idx].loaded && !months[idx].stale) { S.fixFor = ''; fitTab(months[idx], false); }
+  render();
+}
+
+/** Підвантажити місяць, якого ще немає (або оновити збережений). */
+function loadMonth(key) {
+  if (MA_DEMO || S.busy[key]) return;
+  S.busy[key] = true;
+  api({ month: key }, function (res) {
+    S.busy[key] = false;
+    if (res && res.ok) onData(res, {});
+    else { S.failed = true; render(); }
+  });
 }
 
 function showState(reason, bot) {
@@ -210,7 +317,8 @@ function showState(reason, bot) {
     not_connected: ['Спершу підключіться до бота', 'Відкрийте чат з ботом, натисніть «Старт» і поділіться номером телефону. Після цього графік відкриється.', true],
     bad_auth: ['Не вдалося перевірити вхід', 'Закрийте графік і відкрийте його ще раз із чату з ботом.', false],
     no_token: ['Графік ще не налаштовано', 'Адміністратору: у таблиці вкажіть токен бота (меню «🤖 Бот» → «1. Вказати токен»).', false],
-    error: ['Щось пішло не так', 'Не вдалося завантажити графік. Спробуйте відкрити ще раз за хвилину.', false]
+    error: ['Щось пішло не так', 'Не вдалося завантажити графік. Спробуйте відкрити ще раз за хвилину.', false],
+    empty: ['Графіка ще немає', 'У таблиці поки немає жодного місяця з графіком.', false]
   }[reason] || ['Щось пішло не так', 'Спробуйте відкрити графік ще раз.', false];
   document.getElementById('app').innerHTML =
     '<div class="state"><h2>' + esc(t[0]) + '</h2><p>' + esc(t[1]) + '</p>' +
@@ -224,11 +332,17 @@ function pickMonth(i, first) {
   if (i < 0 || i >= ms.length) return;
   S.m = i;
   var mo = ms[i];
+  if (mo.loaded) fitTab(mo, first);
+  else { S.fixFor = mo.key; S.week = 0; }
+  if (!first && (!mo.loaded || mo.stale)) loadMonth(mo.key); /* на старті запит уже йде */
+  render();
+  window.scrollTo(0, 0);
+}
+/** Вкладка й тиждень для місяця: якщо на поточній вкладці порожньо — інша; на старті — де найближча своя дата. */
+function fitTab(mo, first) {
   if (first || !(S.tab === 'mz' ? mo.mz.length : mo.trips.length)) S.tab = mo.mz.length ? 'mz' : 'trips';
   if (first && mo.mz.length && myTripSoon(mo) && !myMzSoon(mo)) S.tab = 'trips';
   S.week = defaultWeek(mo);
-  render();
-  window.scrollTo(0, 0);
 }
 function pickTab(t) { S.tab = t; render(); }
 function pickWeek(w) { S.week = w; render(); }
@@ -271,9 +385,15 @@ function render() {
     '<button role="tab" class="tab' + (S.tab === 'trips' ? ' on' : '') + '" aria-selected="' + (S.tab === 'trips') + '" onclick="pickTab(\'trips\')">Поїздки в села</button>' +
     '</div></div>';
 
-  h += '<div class="body">' + mineCard(mo);
-  h += S.tab === 'mz' ? mzHtml(mo) : tripsHtml(mo);
-  h += '<div class="foot">Дані з таблиці «Графік проповідників»</div></div>';
+  h += '<div class="body">';
+  if (!mo.loaded) {
+    h += '<div class="empty-box loading"><div class="spin small"></div>' + (S.failed ? 'Не вдалося завантажити. Спробуйте ще раз.' : 'Завантажую ' + esc(mo.title.toLowerCase()) + '…') + '</div>';
+  } else {
+    h += mineCard(mo);
+    h += S.tab === 'mz' ? mzHtml(mo) : tripsHtml(mo);
+  }
+  var foot = S.failed ? 'Не вдалося оновити — показано збережений графік' : (S.refreshing || (mo.loaded && mo.stale) ? 'Оновлюю…' : 'Дані з таблиці «Графік проповідників»');
+  h += '<div class="foot">' + esc(foot) + '</div></div>';
   document.getElementById('app').innerHTML = h;
 }
 
