@@ -100,6 +100,23 @@
   .sheet .give { font-size: 15px; color: var(--muted); }
   .steps { margin: 0; padding-left: 20px; font-size: 15px; line-height: 1.5; }
   .cancel { align-self: center; background: none; border: 0; font-size: 15px; font-weight: 600; color: var(--navy); padding: 10px; }
+  .sheet { max-height: 88vh; overflow-y: auto; }
+  .sw-cap { font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: .5px; text-transform: uppercase; }
+  .sw-list { display: flex; flex-direction: column; gap: 8px; }
+  .cand { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 56px; padding: 8px 14px;
+    border-radius: 14px; border: 2px solid var(--line); background: #fff; text-align: left; width: 100%; }
+  .cand.on { border-color: var(--navy); background: #eef3fa; }
+  .cand b { display: block; font-size: 15px; font-weight: 700; color: var(--ink); }
+  .cand span { display: block; font-size: 13px; color: var(--muted); }
+  .cand i { width: 22px; height: 22px; border-radius: 11px; border: 2px solid var(--line); flex-shrink: 0; }
+  .cand.on i { border: 7px solid var(--navy); }
+  .sw-msg { background: var(--bg); border-radius: 14px; padding: 12px 14px; font-size: 15px; line-height: 1.45; }
+  .sw-msg.warn { background: var(--gold-bg); }
+  .sw-wait { display: flex; align-items: center; gap: 12px; font-size: 15px; color: var(--muted); padding: 8px 2px; }
+  .btn.full { width: 100%; }
+  .btn:disabled { opacity: .45; }
+  .btn.ghost { background: #fff; border: 2px solid var(--navy); color: var(--navy); font-weight: 700; }
+  .sw-hint { font-size: 12px; color: var(--muted); text-align: center; }
 </style>
 </head>
 <body>
@@ -113,14 +130,7 @@
     <div class="grip" aria-hidden="true"></div>
     <h3 id="swapTitle">Помінятись</h3>
     <div class="give" id="swapGive"></div>
-    <ol class="steps">
-      <li>Поверніться в чат з ботом.</li>
-      <li>Натисніть кнопку <b>📅 Мої дати</b> внизу.</li>
-      <li>Виберіть <b id="swapBtnName">🔄 Помінятись</b>.</li>
-    </ol>
-    <div class="note">Бот покаже, з ким можна помінятися, не ламаючи правил графіка.</div>
-    <a class="btn" id="swapChat" href="https://t.me/blagodat_grafik_bot" target="_top" onclick="return backToChat(event)">Відкрити чат з ботом</a>
-    <button class="cancel" onclick="closeSwap()">Закрити</button>
+    <div id="swapBody" style="display: flex; flex-direction: column; gap: 12px"></div>
   </div>
 </div>
 
@@ -215,10 +225,12 @@ function userIdFrom(initData) {
 function api(extra, cb) {
   var fail = function () { cb({ ok: false, reason: 'error' }); };
   if (GAS) {
-    google.script.run.withSuccessHandler(cb).withFailureHandler(fail).MA_getData(S.initData, DIAG, extra.month || '');
+    var run = google.script.run.withSuccessHandler(cb).withFailureHandler(fail);
+    if (extra.swap) run.MA_swap(S.initData, DIAG, extra.swap); else run.MA_getData(S.initData, DIAG, extra.month || '');
     return;
   }
-  var body = { initData: S.initData, diag: DIAG, month: extra.month || '' };
+  var body = extra.swap ? { action: 'swap', initData: S.initData, diag: DIAG, req: extra.swap }
+    : { initData: S.initData, diag: DIAG, month: extra.month || '' };
   fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
     .then(function (r) { return r.json(); })
     .then(cb)
@@ -478,7 +490,9 @@ function tripsHtml(mo) {
   return h;
 }
 
-/* ───── Помінятись ───── */
+/* ───── Помінятись: той самий обмін, що й у боті (запит другому братові з ✅/❌) ───── */
+
+var SW = { req: null, data: null, pick: -1, busy: false, op: '' };
 
 function openSwap(iso, kind, i) {
   var mo = S.data.months[S.m], text;
@@ -490,11 +504,85 @@ function openSwap(iso, kind, i) {
     text = 'Нд ' + dm(iso) + ', поїздка в с. ' + s.rows[i].village;
   }
   document.getElementById('swapGive').textContent = 'Віддаєте: ' + text;
-  document.getElementById('swapBtnName').textContent = '🔄 Помінятись: ' + (kind === 'mz' ? mo.mz.filter(function (d) { return d.date === iso; })[0].dow : 'Нд') + ' ' + dm(iso);
-  document.getElementById('swapChat').href = S.data.bot || 'https://t.me/blagodat_grafik_bot';
+  SW = { req: { kind: kind === 'mz' ? 'P' : 'T', ymd: iso, slot: kind === 'mz' ? i + 1 : i }, data: null, pick: -1, busy: false, op: '' };
   document.getElementById('swapUi').className = 'open';
+  swapCall({ op: 'open', kind: SW.req.kind, ymd: iso, slot: SW.req.slot });
 }
 function closeSwap() { document.getElementById('swapUi').className = ''; }
+
+function swapCall(req) {
+  if (MA_DEMO) return swapDemo(req);
+  SW.busy = true; SW.op = req.op; SW.last = req;
+  renderSwap();
+  api({ swap: req }, function (res) {
+    SW.busy = false;
+    if (!res || !res.ok) SW.data = { state: 'error', reason: res && res.reason };
+    else { SW.data = res; SW.pick = -1; }
+    renderSwap();
+  });
+}
+
+function swapPickCand(i) { SW.pick = i; renderSwap(); }
+
+function renderSwap() {
+  var d = SW.data, h = '', admin = (d && d.admin) || 'Давида Дацького';
+  if (d && d.give) document.getElementById('swapGive').textContent = 'Віддаєте: ' + d.give;
+  if (SW.busy) {
+    var what = { open: 'Шукаю, з ким можна помінятися…', pick: 'Надсилаю запит…', resend: 'Скасовую запит…', cancel: 'Скасовую…' }[SW.op] || 'Зачекайте…';
+    h = '<div class="sw-wait"><div class="spin small"></div>' + esc(what) + '</div>';
+  } else if (!d) {
+    h = '';
+  } else if (d.state === 'choose' && d.cands && d.cands.length) {
+    if (d.note) h += '<div class="sw-msg">' + esc(d.note) + '</div>';
+    h += '<span class="sw-cap">З ким можна помінятися</span><div class="sw-list">';
+    d.cands.forEach(function (c) {
+      h += '<button class="cand' + (SW.pick === c.i ? ' on' : '') + '" onclick="swapPickCand(' + c.i + ')">' +
+        '<span style="flex: 1"><b>' + esc(c.name) + '</b><span>' + esc(c.text) + '</span></span><i aria-hidden="true"></i></button>';
+    });
+    h += '</div>';
+    var who = SW.pick >= 0 ? d.cands.filter(function (c) { return c.i === SW.pick; })[0] : null;
+    h += '<button class="btn full" ' + (who ? '' : 'disabled ') + 'onclick="swapCall({ op: \'pick\', id: ' + d.id + ', i: ' + SW.pick + ' })">' +
+      (who ? 'Надіслати запит: ' + esc(who.name) : 'Оберіть брата') + '</button>';
+    h += '<div class="sw-hint">Показано лише обміни, що не ламають правил графіка. Брат отримає запит у Telegram і відповість ✅ або ❌.</div>';
+    h += '<button class="cancel" onclick="closeSwap()">Закрити</button>';
+  } else if (d.state === 'choose') {
+    h += '<div class="sw-msg warn">' + esc(d.note ? d.note + ' ' : '') + esc(d.text || ('Обміну без порушення графіка немає — я повідомив ' + admin + '.')) + '</div>';
+    h += '<button class="btn full" onclick="closeSwap()">Зрозуміло</button>';
+  } else if (d.state === 'pending') {
+    h += '<div class="sw-msg">⏳ Запит надіслано: <b>' + esc(d.b) + '</b>' + (d.at ? ' (' + esc(d.at) + ')' : '') + '.<br>' +
+      'Ваша нова дата буде: ' + esc(d.to) + '.<br>Відповідь прийде в чат з ботом.</div>';
+    h += '<button class="btn ghost full" onclick="swapCall({ op: \'resend\', id: ' + d.id + ' })">🔁 Надіслати іншому</button>';
+    h += '<button class="btn ghost full" onclick="swapCall({ op: \'cancel\', id: ' + d.id + ' })">✖️ Скасувати запит</button>';
+    h += '<button class="cancel" onclick="closeSwap()">Закрити</button>';
+  } else if (d.state === 'cancelled') {
+    h += '<div class="sw-msg">' + esc(d.text || 'Запит скасовано.') + '</div>';
+    h += '<button class="btn full" onclick="closeSwap()">Готово</button>';
+  } else if (d.state === 'unavailable') {
+    h += '<div class="sw-msg warn">Цю дату не можна поміняти через бота: цей графік розсилали вручну або дата вже минула. Зверніться до ' + esc(admin) + '.</div>';
+    h += '<button class="btn full" onclick="closeSwap()">Зрозуміло</button>';
+  } else if (d.state === 'error') {
+    h += '<div class="sw-msg warn">' + (d.reason === 'busy' ? 'Бот саме робить розсилку. Спробуйте ще раз за хвилину.' : 'Не вдалося. Спробуйте ще раз.') + '</div>';
+    h += '<button class="btn full" onclick="swapCall(SW.last)">Спробувати ще раз</button>';
+    h += '<button class="cancel" onclick="closeSwap()">Закрити</button>';
+  } else {
+    h += '<div class="sw-msg warn">' + esc(d.text || 'Цей запит уже не діє.') + '</div>';
+    h += '<button class="btn full" onclick="closeSwap()">Зрозуміло</button>';
+  }
+  document.getElementById('swapBody').innerHTML = h;
+}
+
+/* Попередній перегляд (без сервера): показуємо, як виглядатиме список. */
+function swapDemo(req) {
+  if (req.op === 'open') SW.data = { state: 'choose', id: 0, cands: [
+    { i: 0, name: 'Романчук Павло', text: 'Вт 17.11 о 18:30, другим' },
+    { i: 1, name: 'Підлісний Валерій', text: 'Пн 23.11 о 18:30, другим' },
+    { i: 2, name: 'Яйченя Петро', text: 'Чт 26.11 о 18:30, другим' }] };
+  else if (req.op === 'pick') SW.data = { state: 'pending', id: 0, b: SW.data.cands[req.i].name, to: SW.data.cands[req.i].text, at: '10:30' };
+  else if (req.op === 'resend') return swapDemo({ op: 'open' });
+  else SW.data = { state: 'cancelled', text: 'Запит скасовано.' };
+  SW.pick = -1;
+  renderSwap();
+}
 
 start();
 </script>
