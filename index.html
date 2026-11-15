@@ -117,6 +117,63 @@
   .btn:disabled { opacity: .45; }
   .btn.ghost { background: #fff; border: 2px solid var(--navy); color: var(--navy); font-weight: 700; }
   .sw-hint { font-size: 12px; color: var(--muted); text-align: center; }
+
+  /* Кнопка «?» і довідка «Як користуватися» */
+  .help-btn { width: 44px; height: 44px; border-radius: 22px; border: 2px solid var(--gold); background: transparent;
+    color: var(--gold); font-size: 21px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+    margin-left: 8px; flex-shrink: 0; padding: 0; }
+  .help-link { background: none; border: 0; color: var(--navy); font-size: 14px; font-weight: 700; padding: 10px; text-decoration: underline; }
+  .tip { position: relative; margin: -4px 0 0; background: var(--gold); color: var(--ink); border-radius: 14px; padding: 10px 40px 10px 14px;
+    font-size: 14px; font-weight: 600; line-height: 1.35; animation: tipIn .35s ease-out; }
+  .tip b { font-weight: 800; }
+  .tip button { position: absolute; top: 4px; right: 4px; width: 36px; height: 36px; border: 0; background: none; font-size: 18px; color: var(--ink); }
+  @keyframes tipIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+  #helpUi { position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch; display: none; }
+  #helpUi.open { display: block; animation: helpIn .28s ease-out; }
+  @keyframes helpIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+  .h-top { position: sticky; top: 0; z-index: 2; background: var(--navy); padding: 10px 12px; display: flex; align-items: center; gap: 8px; }
+  .h-top h2 { margin: 0; flex: 1; font-size: 20px; font-weight: 800; color: #fff; }
+  .h-back { min-height: 44px; padding: 0 12px 0 6px; border: 0; border-radius: 12px; background: var(--navy-2); color: #fff;
+    font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
+  .h-body { max-width: 560px; margin: 0 auto; padding: 14px 14px calc(28px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
+  .h-lead { font-size: 15px; color: var(--muted); line-height: 1.45; padding: 0 4px; }
+  .vid { position: relative; border-radius: 16px; overflow: hidden; background: var(--navy-3); }
+  .vid video { display: block; width: 100%; aspect-ratio: 9 / 16; max-height: 70vh; background: #000; object-fit: contain; }
+  .vid-cap { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; color: #fff; font-size: 15px; font-weight: 700; }
+  .vid-cap span { font-size: 13px; font-weight: 600; color: #b9c8db; }
+  .vid-btn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 8px 12px; border: 0; border-radius: 14px;
+    background: var(--navy); color: #fff; text-align: left; }
+  .vid-btn img { width: 40px; height: 54px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: var(--navy-3); }
+  .vid-btn b { display: block; font-size: 15px; font-weight: 700; }
+  .vid-btn small { display: block; font-size: 13px; color: #b9c8db; font-weight: 500; }
+  .vid-btn .pl { margin-left: auto; width: 36px; height: 36px; border-radius: 18px; background: var(--gold); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; }
+  .topic { background: #fff; border-radius: 16px; overflow: hidden; scroll-margin-top: 74px; }
+  .topic > button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 10px 14px; border: 0; background: none;
+    text-align: left; color: var(--ink); }
+  .topic .ic { width: 40px; height: 40px; border-radius: 12px; background: var(--bg); display: flex; align-items: center; justify-content: center;
+    font-size: 21px; flex-shrink: 0; }
+  .topic .tt { flex: 1; min-width: 0; }
+  .topic .tt b { display: block; font-size: 16px; font-weight: 700; }
+  .topic .tt small { display: block; font-size: 13px; color: var(--muted); margin-top: 1px; }
+  .topic .chev { transition: transform .25s; flex-shrink: 0; }
+  .topic.on .chev { transform: rotate(90deg); }
+  .topic.key { box-shadow: 0 0 0 2px var(--gold); }
+  .t-body { display: none; padding: 2px 14px 14px; flex-direction: column; gap: 10px; }
+  .topic.on .t-body { display: flex; }
+  .st { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; line-height: 1.45; opacity: 0; animation: stIn .4s ease-out forwards; }
+  .st .dot { width: 24px; height: 24px; border-radius: 12px; background: var(--navy); color: #fff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .st.rule .dot { background: var(--gold); color: var(--ink); }
+  @keyframes stIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
+  .demo { position: relative; opacity: 0; animation: stIn .4s ease-out forwards; background: var(--bg); border-radius: 14px; padding: 10px; }
+  .demo .row, .demo .mine-card, .demo .chips { pointer-events: none; }
+  .ring { position: absolute; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; border: 3px solid var(--gold);
+    animation: ring 1.6s ease-out infinite; pointer-events: none; }
+  @keyframes ring { 0% { transform: scale(.5); opacity: 0; } 25% { opacity: 1; } 100% { transform: scale(1.35); opacity: 0; } }
+  .h-sub { font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: .5px; text-transform: uppercase; padding: 6px 4px 0; }
+  @media (prefers-reduced-motion: reduce) { .st, .demo, #helpUi.open, .tip { animation: none; opacity: 1; } .ring { display: none; } }
 </style>
 </head>
 <body>
@@ -133,6 +190,8 @@
     <div id="swapBody" style="display: flex; flex-direction: column; gap: 12px"></div>
   </div>
 </div>
+
+<div id="helpUi" role="dialog" aria-modal="true" aria-labelledby="helpTitle"></div>
 
 <script>
 /* Для попереднього перегляду поза Telegram сюди підставляються дані. У Telegram — null. */
@@ -392,12 +451,15 @@ function render() {
     '<h1>' + esc(mo.title) + '</h1>' +
     '<button class="nav" aria-label="Наступний місяць" onclick="pickMonth(' + (S.m + 1) + ')"' + (S.m === ms.length - 1 ? ' disabled' : '') + '>' +
     '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M7 3 L13 9 L7 15" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
+    '<button class="help-btn" aria-label="Як користуватися" onclick="openHelp()">?</button>' +
     '</div><div class="tabs" role="tablist">' +
     '<button role="tab" class="tab' + (S.tab === 'mz' ? ' on' : '') + '" aria-selected="' + (S.tab === 'mz') + '" onclick="pickTab(\'mz\')">Молитовні зібрання</button>' +
     '<button role="tab" class="tab' + (S.tab === 'trips' ? ' on' : '') + '" aria-selected="' + (S.tab === 'trips') + '" onclick="pickTab(\'trips\')">Поїздки в села</button>' +
     '</div></div>';
 
   h += '<div class="body">';
+  if (showTip()) h += '<div class="tip">Нове: <b>довідка</b>. Натисніть <b>?</b> угорі, щоб побачити, як користуватися графіком, і подивитися відео.' +
+    '<button aria-label="Закрити підказку" onclick="hideTip()">✕</button></div>';
   if (!mo.loaded) {
     h += '<div class="empty-box loading"><div class="spin small"></div>' + (S.failed ? 'Не вдалося завантажити. Спробуйте ще раз.' : 'Завантажую ' + esc(mo.title.toLowerCase()) + '…') + '</div>';
   } else {
@@ -405,7 +467,8 @@ function render() {
     h += S.tab === 'mz' ? mzHtml(mo) : tripsHtml(mo);
   }
   var foot = S.failed ? 'Не вдалося оновити — показано збережений графік' : (S.refreshing || (mo.loaded && mo.stale) ? 'Оновлюю…' : 'Дані з таблиці «Графік проповідників»');
-  h += '<div class="foot">' + esc(foot) + '</div></div>';
+  h += '<div class="foot">' + esc(foot) + '</div>' +
+    '<button class="help-link" onclick="openHelp()">Як користуватися графіком</button></div>';
   document.getElementById('app').innerHTML = h;
 }
 
@@ -582,6 +645,164 @@ function swapDemo(req) {
   else SW.data = { state: 'cancelled', text: 'Запит скасовано.' };
   SW.pick = -1;
   renderSwap();
+}
+
+/* ───── Довідка «Як користуватися» ───── */
+
+/* Відео (<file>.mp4 і обкладинка <file>.jpg) лежать на GitHub Pages поруч зі сторінкою. null — відео ще немає (рядок не показується). */
+var HELP_BASE = 'https://ddatskiy-wq.github.io/blagodat-grafik/';
+var VIDEOS = {
+  app:   { file: 'grafik', title: 'Новий графік у Телеграмі', len: '0:49' },
+  swap:  null, /* { file: 'swap', title: 'Як помінятись', len: '…' } */
+  mz:    null, /* { file: 'mz', title: 'Молитовні зібрання', len: '…' } */
+  trips: null, /* { file: 'trips', title: 'Поїздки по селах', len: '…' } */
+  elder: null  /* { file: 'elder', title: 'Для старшого пресвітера', len: '…' } */
+};
+var H = { open: -1, playing: '' };
+
+function tipKey() { return 'ma_help_tip'; }
+function showTip() {
+  if (MA_DEMO) return false;
+  try { return !window.localStorage.getItem(tipKey()); } catch (e) { return false; }
+}
+function hideTip() {
+  try { window.localStorage.setItem(tipKey(), '1'); } catch (e) {}
+  render();
+}
+
+function vidButton(v, id) {
+  if (!v) return '';
+  return '<div id="vb_' + id + '"><button class="vid-btn" onclick="playVid(\'' + id + '\')">' +
+    '<img src="' + HELP_BASE + v.file + '.jpg" alt="" loading="lazy">' +
+    '<span><b>' + esc(v.title) + '</b><small>Відео · ' + esc(v.len) + '</small></span>' +
+    '<span class="pl" aria-hidden="true"><svg width="14" height="16" viewBox="0 0 14 16"><path d="M2 1.5 L13 8 L2 14.5 Z" fill="#1b2a3d"/></svg></span></button></div>';
+}
+/** Кнопку відео замінюємо на сам плеєр — завантажується лише тоді, коли його хочуть дивитися. */
+function playVid(id) {
+  var v = VIDEOS[id], box = document.getElementById('vb_' + id);
+  if (!v || !box) return;
+  stopVideos();
+  box.innerHTML = '<div class="vid"><video src="' + HELP_BASE + v.file + '.mp4" poster="' + HELP_BASE + v.file + '.jpg" controls playsinline autoplay preload="auto"></video>' +
+    '<div class="vid-cap">' + esc(v.title) + '<span>' + esc(v.len) + '</span></div></div>';
+  var el = box.querySelector('video');
+  try { var p = el.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+}
+function stopVideos() {
+  var vs = document.querySelectorAll('#helpUi video');
+  for (var i = 0; i < vs.length; i++) { try { vs[i].pause(); } catch (e) {} }
+}
+
+/* Мініатюри справжніх елементів екрана — щоб було видно, що саме шукати. */
+function demoSwapRow() {
+  var me = S.data ? S.data.me : 'Ваше ім\'я';
+  return '<div class="demo" style="animation-delay: .05s"><div class="row me"><span class="num">2</span><span class="name">' + esc(me) + '</span>' +
+    '<button class="swap" tabindex="-1">Помінятись</button></div><span class="ring" style="right: 31px; top: 30px; left: auto"></span></div>';
+}
+function demoMine() {
+  return '<div class="demo" style="animation-delay: .05s"><div class="mine-card"><span class="cap">Ваші дати</span>' +
+    '<div class="mine-item past">✓ Вт 03.11, 18:30 — молитовне, першим</div>' +
+    '<div class="mine-item">Нд 22.11 — поїздка в с. Любахи<span class="sub">Приймає: ім\'я та номер телефону</span></div></div></div>';
+}
+function demoWeeks() {
+  return '<div class="demo" style="animation-delay: .05s"><div class="chips"><button class="chip" tabindex="-1">2–7 лист.</button>' +
+    '<button class="chip" tabindex="-1">9–14 лист.</button><button class="chip on" tabindex="-1">16–21 лист.</button></div>' +
+    '<span class="ring" style="left: 250px; top: 30px"></span></div>';
+}
+
+function helpTopics() {
+  return [
+    { ic: '📅', t: 'Ваші дати', s: 'Золота картка вгорі', demo: demoMine, steps: [
+      'Угорі — картка «Ваші дати» на вибраний місяць: молитовні зібрання й поїздки.',
+      'Минулі дати — сірим, з позначкою ✓.',
+      'Якщо їдете в село, тут видно, хто вас приймає. Натисніть на номер — і телефон набере його.',
+      'Якщо приймаєте у своєму селі — видно, хто до вас приїде, і його номер.'] },
+    { ic: '🙏', t: 'Молитовні зібрання', s: 'Графік по тижнях', demo: demoWeeks, video: 'mz', steps: [
+      'Відкрийте вкладку «Молитовні зібрання».',
+      'Графік розбитий по тижнях — перемикайте їх кнопками з датами. Спершу відкривається поточний тиждень.',
+      'Цифра біля імені — черговість: 1 — проповідує першим, 2 — другим.',
+      'Ваш рядок підсвічений золотим, сьогоднішній день позначений «сьогодні».'] },
+    { ic: '🚐', t: 'Поїздки в села', s: 'Хто в яку неділю куди їде', video: 'trips', steps: [
+      'Відкрийте вкладку «Поїздки в села».',
+      'Для кожної неділі — 6 сіл і брат, який туди їде.',
+      '✅ — приймаючий підтвердив, що брат доїхав. ❌ — не доїхав.'] },
+    { ic: '🗓', t: 'Інші місяці', s: 'Стрілки біля назви місяця', steps: [
+      'Стрілки ‹ і › біля назви місяця відкривають попередній і наступний місяць.',
+      'Графік зберігається на телефоні, тож відкривається одразу. Поки внизу написано «Оновлюю…», підтягуються свіжі зміни з таблиці.'] },
+    { ic: '🔄', t: 'Як помінятися', s: 'Якщо не можете у свою дату', key: true, demo: demoSwapRow, video: 'swap', steps: [
+      'Біля своєї дати натисніть «Помінятись».',
+      'Застосунок покаже лише тих братів, з ким обмін не порушує графік.',
+      'Виберіть брата й натисніть «Надіслати запит».',
+      'Брат отримає повідомлення від бота і відповість ✅ або ❌. Коли погодиться, графік зміниться сам, а вам прийде підтвердження.',
+      'Поки чекаєте відповіді, можна «Надіслати іншому» або «Скасувати запит» — відкрийте «Помінятись» біля цієї ж дати ще раз.'],
+      rules: [
+        'Помінятися можна не пізніше ніж за добу до служіння.',
+        'Не більше одного обміну на тиждень.',
+        'Якщо обміну без порушення графіка немає, бот сам повідомить адміністратора.'] },
+    { ic: '🤖', t: 'Чат з ботом', s: 'Нагадування, «Мої дати», обмін', video: 'elder', steps: [
+      'Усе, що було в чаті з ботом, лишається: нагадування, кнопка «📅 Мої дати» і обмін.',
+      'Новий графік — додаткова зручність, щоб бачити весь місяць наочно.',
+      'Кнопка «Графік» — біля поля для повідомлення в чаті з ботом.'] }
+  ];
+}
+
+function openHelp() {
+  try { window.localStorage.setItem(tipKey(), '1'); } catch (e) {}
+  H.open = -1;
+  renderHelp();
+  var ui = document.getElementById('helpUi');
+  ui.className = 'open'; ui.scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+  if (TG && TG.BackButton) { try { TG.BackButton.onClick(closeHelp); TG.BackButton.show(); } catch (e) {} }
+  if (S.data) render(); /* прибрати підказку «Нове: довідка» */
+}
+function closeHelp() {
+  stopVideos();
+  document.getElementById('helpUi').className = '';
+  document.body.style.overflow = '';
+  if (TG && TG.BackButton) { try { TG.BackButton.offClick(closeHelp); TG.BackButton.hide(); } catch (e) {} }
+}
+function toggleTopic(i) {
+  stopVideos();
+  H.open = H.open === i ? -1 : i;
+  renderHelp();
+  if (H.open >= 0) {
+    var el = document.getElementById('tp_' + i);
+    if (el && el.scrollIntoView) setTimeout(function () { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30);
+  }
+}
+
+function renderHelp() {
+  var ts = helpTopics(), h = '';
+  h += '<div class="h-top"><button class="h-back" onclick="closeHelp()"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M11 3 L5 9 L11 15" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Графік</button>' +
+    '<h2 id="helpTitle">Як користуватися</h2></div><div class="h-body">';
+  h += '<div class="h-lead">Подивіться коротке відео або відкрийте потрібну тему.</div>';
+  h += vidButton(VIDEOS.app, 'app');
+  h += '<div class="h-sub">Теми</div>';
+  ts.forEach(function (t, i) {
+    var on = H.open === i, k = 0;
+    h += '<div class="topic' + (on ? ' on' : '') + (t.key ? ' key' : '') + '" id="tp_' + i + '">' +
+      '<button aria-expanded="' + on + '" onclick="toggleTopic(' + i + ')"><span class="ic" aria-hidden="true">' + t.ic + '</span>' +
+      '<span class="tt"><b>' + esc(t.t) + '</b><small>' + esc(t.s) + '</small></span>' +
+      '<svg class="chev" width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path d="M7 3 L13 9 L7 15" stroke="#4a5a6e" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
+    if (on) {
+      h += '<div class="t-body">';
+      if (t.demo) h += t.demo();
+      t.steps.forEach(function (x, j) {
+        h += '<div class="st" style="animation-delay: ' + (0.15 + 0.22 * k++).toFixed(2) + 's"><span class="dot">' + (j + 1) + '</span><span>' + esc(x) + '</span></div>';
+      });
+      (t.rules || []).forEach(function (x) {
+        h += '<div class="st rule" style="animation-delay: ' + (0.15 + 0.22 * k++).toFixed(2) + 's"><span class="dot">!</span><span>' + esc(x) + '</span></div>';
+      });
+      if (t.video && VIDEOS[t.video]) h += '<div class="st" style="display: block; animation-delay: ' + (0.15 + 0.22 * k++).toFixed(2) + 's">' + vidButton(VIDEOS[t.video], t.video) + '</div>';
+      h += '</div>';
+    }
+    h += '</div>';
+  });
+  var bot = (S.data && S.data.bot) || 'https://t.me/blagodat_grafik_bot';
+  h += '<div class="h-lead" style="text-align: center; padding-top: 6px">Щось не так із графіком? Зверніться до Давида Дацького.</div>';
+  h += '<a class="btn full" href="' + esc(bot) + '" target="_top" onclick="return backToChat(event)">Відкрити чат з ботом</a>';
+  h += '</div>';
+  document.getElementById('helpUi').innerHTML = h;
 }
 
 start();
